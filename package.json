@@ -1,0 +1,16 @@
+{
+  "name": "your-app-name",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node develop/server/server.js",
+    "dev": "nodemon develop/server/server.js"
+  },
+  "dependencies": {
+    "apollo-server-express": "^3.13.0",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "graphql": "^16.9.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.7.2"
+  }
+}
