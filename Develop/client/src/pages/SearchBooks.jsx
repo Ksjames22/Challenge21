@@ -1,72 +1,72 @@
 import { useState, useEffect } from 'react';
-import {
-  Container,
-  Col,
-  Form,
-  Button,
-  Card,
-  Row
-} from 'react-bootstrap';
-import { useMutation } from '@apollo/client';
+import { Container, Col, Form, Button, Card, Row, Alert } from 'react-bootstrap';
+import { useMutation, useQuery } from '@apollo/client';
 import Auth from '../utils/auth';
 import { SAVE_BOOK } from "../graphql/mutations";
-import { SEARCH_BOOKS } from "../graphql/queries"; // If SEARCH_BOOKS is defined here
+import { SEARCH_BOOKS } from "../graphql/queries"; // Make sure SEARCH_BOOKS is defined
+
+const getSavedBookIds = () => {
+  const savedBooks = localStorage.getItem('savedBooks');
+  return savedBooks ? JSON.parse(savedBooks) : [];
+};
+
 const SearchBooks = () => {
   const [searchedBooks, setSearchedBooks] = useState([]);
   const [searchInput, setSearchInput] = useState('');
   const [savedBookIds, setSavedBookIds] = useState(getSavedBookIds());
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     return () => saveBookIds(savedBookIds);
   }, [savedBookIds]);
 
-  // Define the saveBook mutation
   const [saveBook] = useMutation(SAVE_BOOK);
 
-  const handleFormSubmit = async (event) => {
-    event.preventDefault();
+  // Query for searching books
+  const { loading, data } = useQuery(SEARCH_BOOKS, {
+    variables: { searchInput },
+    skip: !searchInput,
+  });
 
-    if (!searchInput) {
-      return false;
-    }
-
-    try {
-      const { data } = await searchGoogleBooks(searchInput); // Assume searchGoogleBooks is an Apollo query
-
-      const bookData = data.books.map((book) => ({
-        bookId: book.id,
-        authors: book.volumeInfo.authors || ['No author to display'],
-        title: book.volumeInfo.title,
-        description: book.volumeInfo.description,
-        image: book.volumeInfo.imageLinks?.thumbnail || '',
+  useEffect(() => {
+    if (data && data.searchBooks) {
+      const bookData = data.searchBooks.map((book) => ({
+        bookId: book.bookId,
+        authors: book.authors || ['No author to display'],
+        title: book.title,
+        description: book.description,
+        image: book.image,
       }));
 
       setSearchedBooks(bookData);
-      setSearchInput('');
-    } catch (err) {
-      console.error(err);
     }
+  }, [data]);
+
+  const handleFormSubmit = async (event) => {
+    event.preventDefault();
+    if (!searchInput) return false;
+    
+    // Reset the searched books if searchInput changes
+    setSearchedBooks([]);
   };
 
   const handleSaveBook = async (bookId) => {
     const bookToSave = searchedBooks.find((book) => book.bookId === bookId);
     const token = Auth.loggedIn() ? Auth.getToken() : null;
 
-    if (!token) {
-      return false;
-    }
+    if (!token) return false;
 
     try {
       const { data } = await saveBook({
         variables: { input: bookToSave },
       });
 
-      // Optionally check the response data
       if (data.saveBook) {
         setSavedBookIds([...savedBookIds, bookToSave.bookId]);
       }
     } catch (err) {
       console.error(err);
+      setError("Failed to save the book.");
     }
   };
 
@@ -88,11 +88,12 @@ const SearchBooks = () => {
                 />
               </Col>
               <Col xs={12} md={4}>
-                <Button type='submit' variant='success' size='lg'>
-                  Submit Search
+                <Button type='submit' variant='success' size='lg' disabled={loading}>
+                  {loading ? 'Searching...' : 'Submit Search'}
                 </Button>
               </Col>
             </Row>
+            {error && <Alert variant='danger'>{error}</Alert>}
           </Form>
         </Container>
       </div>
@@ -135,4 +136,7 @@ const SearchBooks = () => {
 };
 
 export default SearchBooks;
+
+
+
 
