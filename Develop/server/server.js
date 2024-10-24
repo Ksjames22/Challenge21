@@ -31,17 +31,23 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/build')));
 }
 
-// Apply Apollo middleware
-server.applyMiddleware({ app });
+// Start the Apollo Server
+const startApolloServer = async () => {
+  await server.start(); // Wait for Apollo Server to start
+  server.applyMiddleware({ app }); // Apply Apollo middleware
 
-// Use existing routes
-app.use(routes);
+  // Use existing routes
+  app.use(routes);
 
-// Start the database connection and server
-db.once('open', () => {
-  app.listen(PORT, () => {
-    console.log(`🌍 Now listening on localhost:${PORT}${server.graphqlPath}`); // Include the GraphQL endpoint
+  // Start the database connection and server
+  db.once('open', () => {
+    app.listen(PORT, () => {
+      console.log(`🌍 Now listening on localhost:${PORT}${server.graphqlPath}`); // Include the GraphQL endpoint
+    });
   });
-});
+};
+
+// Call the function to start the server
+startApolloServer();
 
 
